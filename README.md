@@ -2,30 +2,37 @@
 
 Experimental World of Warcraft Retail/Midnight leveling automation built around **Follow The Arrow (FTA)** and **WardenGG Extended Lua Unlocker**.
 
-This is a personal hobby project. I started it because I was bored and wanted to see how far FTA + WardenGG could be pushed toward reliable alt-leveling automation. I am building it primarily for my own use and experimentation, but I am happy to share the code with anyone who wants to test it, learn from it, improve it, or build on the ideas here.
+This is a personal hobby project I started because I was bored and wanted to see how far FTA + WardenGG could be pushed toward reliable alt-leveling automation. I am building it primarily for my own use and experimentation, but I am happy to share the code with anyone who wants to test it, learn from it, improve it, or build on the ideas here.
 
 No software license has been selected yet.
 
 ## Current versions
 
-Latest experimental package:
+Current experimental controller:
 
 ```text
-latest/FTA_HybridNav_v0.7.6_ElevatedTurninFix.zip
+0.7.6-elevated-turnin-fix
 ```
 
-The package contains:
-
-```text
-WardenGG/_FTA_HybridNav_v0.7.6_ElevatedTurninFix.lua
-FollowTheArrow/Core/WGGBridge.lua
-```
-
-Current bridge version:
+Current bridge:
 
 ```text
 0.4.2-fta-satisfied
 ```
+
+The current package is stored under `latest/` as Base64 parts with a PowerShell rebuild script. From the repository root, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\latest\rebuild_latest.ps1
+```
+
+That reconstructs:
+
+```text
+latest\FTA_HybridNav_v0.7.6_ElevatedTurninFix.zip
+```
+
+The script verifies the rebuilt ZIP is exactly 29,314 bytes.
 
 The old `warden/_FTA_DirectMove_v0.4.lua` file is a legacy milestone and should not be used with the current hybrid controller.
 
@@ -36,7 +43,7 @@ The project has progressed well beyond the original v0.4 travel prototype. The f
 - FTA route, module, step and segment state can be read through the bridge.
 - FTA map coordinates are converted into WoW world coordinates.
 - The bridge reads quest IDs, objective indexes and live WoW objective progress.
-- FTA `SEQUENCE_CHAIN` state can be matched to the routed objective rather than blindly using the first unfinished segment.
+- FTA `SEQUENCE_CHAIN` state can be matched to the routed objective instead of blindly using the first unfinished segment.
 - WardenGG Navigation Server connects successfully on localhost.
 - MMAP/VMAP-backed path generation is being used for hybrid navigation.
 - Ground travel can use WardenGG `FindPath` + `MoveAlongPath`.
@@ -46,22 +53,21 @@ The project has progressed well beyond the original v0.4 travel prototype. The f
 - Live WardenGG object-manager scanning can find nearby units and objects.
 - Quest NPCs can be approached and interacted with.
 - Quest acceptance has worked in live testing.
-- Multi-objective FTA route handling is working well enough to select and execute kill objectives.
+- Multi-objective FTA route handling can select and execute kill objectives.
 - Kill objectives can select a matching hostile and hand the target to an external Warden combat rotation.
-- Strict kill-name matching prevents the objective controller from intentionally farming arbitrary nearby mobs.
 - Semantic objective classification distinguishes actions such as `KILL`, `INTERACT`, `EXTRA_ACTION`, `PICKUP` and `TURNIN`.
 - The Fairbreeze `Help Citizens` objective is correctly classified as interaction work even though WoW reports its objective type as `monster`.
-- The live object scanner correctly identified **Mr. Fluff** as the intended Fairbreeze interaction object during testing.
+- The live object scanner correctly identified **Mr. Fluff**, ObjectID `244042`, as the intended Fairbreeze interaction object during testing.
 
 ## Latest experimental work: v0.7.6
 
-v0.7.6 contains two newer changes that still need broader live validation:
+v0.7.6 contains two newer changes that still need broader live validation.
 
 ### Elevated interaction objects
 
 Some quest objects are physically above the ground navmesh. Mr. Fluff on the Fairbreeze statue exposed this problem: the correct object was found, but asking ground navigation to path directly to the object's elevated Z coordinate returned no path.
 
-v0.7.6 adds an elevated-object flow:
+v0.7.6 adds this flow:
 
 ```text
 identify elevated quest object
@@ -79,7 +85,7 @@ WGG.ObjectInteract() fallback
 
 ### Multiple quest turn-ins
 
-The quest-event layer now collects currently actionable pickup/turn-in quest IDs from the routed FTA state instead of only looking at the root active segment. This is intended to support clusters where several completed quests are available at the same time.
+The quest-event layer now collects currently actionable pickup/turn-in quest IDs from routed FTA state instead of only looking at the root active segment. This is intended to support clustered areas where several completed quests are available at once.
 
 These newest v0.7.6 changes are experimental until they receive more live testing.
 
@@ -125,20 +131,20 @@ See `docs/ARCHITECTURE.md` for more detail.
 
 The current hybrid build expects a WardenGG Navigation Server when MMAP/VMAP navigation is being used.
 
-Default script address:
+Default address:
 
 ```text
 127.0.0.1:47110
 ```
 
-Example navigation-server data layout used during development:
+Example navigation data layout used during development:
 
 ```text
 C:\WGG\NavData\mmaps\
 C:\WGG\NavData\vmaps\
 ```
 
-The server configuration, not the Lua controller, points to the MMAP/VMAP directories.
+The navigation server configuration, not the Lua controller, points to those directories.
 
 ## Follow The Arrow bridge installation
 
@@ -156,7 +162,7 @@ to:
 World of Warcraft/_retail_/Interface/AddOns/FollowTheArrow/Core/WGGBridge.lua
 ```
 
-Then make sure this line exists in `FollowTheArrow.toc` after the appropriate core files:
+Make sure this line exists in `FollowTheArrow.toc` after the appropriate core files:
 
 ```text
 Core\WGGBridge.lua
@@ -170,19 +176,19 @@ Bridge diagnostic:
 
 ## WardenGG installation
 
-The current complete controller is included in the latest ZIP package:
+Rebuild the current package first:
 
-```text
-latest/FTA_HybridNav_v0.7.6_ElevatedTurninFix.zip
+```powershell
+powershell -ExecutionPolicy Bypass -File .\latest\rebuild_latest.ps1
 ```
 
-Extract:
+Then extract:
 
 ```text
 WardenGG/_FTA_HybridNav_v0.7.6_ElevatedTurninFix.lua
 ```
 
-into the WardenGG script directory used by your setup.
+from the rebuilt ZIP into the WardenGG script directory used by your setup.
 
 Do not leave several old `_FTA_DirectMove*` or `_FTA_HybridNav*` controllers loading at the same time. They are independent scripts and can fight over movement.
 
