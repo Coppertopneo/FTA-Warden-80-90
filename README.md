@@ -1,108 +1,146 @@
 # FTA + WardenGG 80–90 Auto-Quest Prototype
 
-Experimental World of Warcraft Retail/Midnight leveling automation prototype.
+Experimental World of Warcraft Retail/Midnight leveling automation built around **Follow The Arrow (FTA)** and **WardenGG Extended Lua Unlocker**.
 
-The project uses **Follow The Arrow (FTA)** as the high-level leveling route/quest-step source and **WardenGG Extended Lua Unlocker** for movement, flying, landing, live object discovery, and NPC interaction.
-
-The goal is a fast and reliable **80–90 alt leveling flow** using FTA's optimized route.
-
-## Project intent
-
-This is a personal hobby project I started because I was bored and wanted to see how far I could push FTA + WardenGG toward reliable alt-leveling automation.
-
-I'm building it primarily for my own use and experimentation, but I'm happy to share the code with anyone who finds it useful, wants to learn from it, test it, improve it, or build on the ideas here. I'm not looking for payment or compensation for the work.
-
-This is still an experimental project under active development, so expect unfinished pieces, occasional questionable behavior, and the usual consequences of teaching a game character to make decisions on its own.
+This is a personal hobby project. I started it because I was bored and wanted to see how far FTA + WardenGG could be pushed toward reliable alt-leveling automation. I am building it primarily for my own use and experimentation, but I am happy to share the code with anyone who wants to test it, learn from it, improve it, or build on the ideas here.
 
 No software license has been selected yet.
 
-## Current verified state
+## Current versions
 
-The following behavior has been tested in-game:
-
-- Reads FTA's active route step and destination through the bridge.
-- Converts FTA map coordinates to WoW world coordinates.
-- Direct ground movement toward FTA destinations works.
-- Continuous heading correction works after overshooting a destination.
-- Mount/flying travel works.
-- Flight controller can reach the destination and perform a controlled landing.
-- The character has successfully landed directly in front of the target NPC.
-- Live WardenGG object-manager scanning can identify a nearby NPC/object.
-- The character can approach the live NPC coordinates.
-- `WGG.ObjectInteract()` successfully opened the NPC/quest dialog.
-
-### Current known limitation
-
-**v0.4 opens the NPC/quest dialog, but does not yet accept/start the quest.**
-
-The next quest-controller step is explicit handling of quest UI actions such as accepting, completing, and selecting rewards after interaction.
-
-## Current components
-
-### `warden/_FTA_DirectMove_v0.4.lua`
-
-Current WardenGG travel/interact prototype.
-
-Implemented:
-
-- FTA target consumption
-- direct ground steering
-- mount attempts
-- flying/skyriding
-- obstacle raycasts
-- obstacle recovery
-- controlled descent and landing
-- live object enumeration
-- `ObjectName`, `ObjectID`, `ObjectGUID`, and `ObjectPos` inspection
-- pickup/turn-in candidate selection
-- live NPC approach
-- `WGG.ObjectInteract()`
-- controlled long-distance `Surge Forward` attempts
-
-Surge Forward is implemented in v0.4, but has not yet been independently validated as thoroughly as the travel/landing/NPC interaction path.
-
-### `fta_bridge/WGGBridge.lua`
-
-Small bridge loaded inside Follow The Arrow.
-
-It exposes the currently resolved FTA step through:
-
-```lua
-_G.FTA_WGG_Bridge.GetCurrent()
-```
-
-Example returned information includes:
-
-```lua
-{
-    routeId = "...",
-    moduleId = "...",
-    stepIndex = 1,
-    segmentIndex = 1,
-    kind = "pickup",
-    questIDs = { ... },
-    objectiveIndex = 1,
-    text = "...",
-    target = {
-        mapID = 1234,
-        x = 50.0,
-        y = 50.0,
-        x01 = 0.5,
-        y01 = 0.5,
-        radius = 6
-    }
-}
-```
-
-The bridge also adds:
+Latest experimental package:
 
 ```text
-/ftawgg
+latest/FTA_HybridNav_v0.7.6_ElevatedTurninFix.zip
 ```
 
-for diagnostics.
+The package contains:
 
-## Follow The Arrow installation
+```text
+WardenGG/_FTA_HybridNav_v0.7.6_ElevatedTurninFix.lua
+FollowTheArrow/Core/WGGBridge.lua
+```
+
+Current bridge version:
+
+```text
+0.4.2-fta-satisfied
+```
+
+The old `warden/_FTA_DirectMove_v0.4.lua` file is a legacy milestone and should not be used with the current hybrid controller.
+
+## What is working in live testing
+
+The project has progressed well beyond the original v0.4 travel prototype. The following pieces have been demonstrated in game during development:
+
+- FTA route, module, step and segment state can be read through the bridge.
+- FTA map coordinates are converted into WoW world coordinates.
+- The bridge reads quest IDs, objective indexes and live WoW objective progress.
+- FTA `SEQUENCE_CHAIN` state can be matched to the routed objective rather than blindly using the first unfinished segment.
+- WardenGG Navigation Server connects successfully on localhost.
+- MMAP/VMAP-backed path generation is being used for hybrid navigation.
+- Ground travel can use WardenGG `FindPath` + `MoveAlongPath`.
+- Flying/skyriding travel, steering, obstacle recovery, descent and controlled landing work.
+- Direct movement remains available as a fallback when navigation fails.
+- The controller can mount, take off and attempt controlled `Surge Forward` use during long flights.
+- Live WardenGG object-manager scanning can find nearby units and objects.
+- Quest NPCs can be approached and interacted with.
+- Quest acceptance has worked in live testing.
+- Multi-objective FTA route handling is working well enough to select and execute kill objectives.
+- Kill objectives can select a matching hostile and hand the target to an external Warden combat rotation.
+- Strict kill-name matching prevents the objective controller from intentionally farming arbitrary nearby mobs.
+- Semantic objective classification distinguishes actions such as `KILL`, `INTERACT`, `EXTRA_ACTION`, `PICKUP` and `TURNIN`.
+- The Fairbreeze `Help Citizens` objective is correctly classified as interaction work even though WoW reports its objective type as `monster`.
+- The live object scanner correctly identified **Mr. Fluff** as the intended Fairbreeze interaction object during testing.
+
+## Latest experimental work: v0.7.6
+
+v0.7.6 contains two newer changes that still need broader live validation:
+
+### Elevated interaction objects
+
+Some quest objects are physically above the ground navmesh. Mr. Fluff on the Fairbreeze statue exposed this problem: the correct object was found, but asking ground navigation to path directly to the object's elevated Z coordinate returned no path.
+
+v0.7.6 adds an elevated-object flow:
+
+```text
+identify elevated quest object
+        ↓
+choose a reachable ground staging point
+        ↓
+move near the object
+        ↓
+face + pitch toward it
+        ↓
+world-space WGG.MouseClick()
+        ↓
+WGG.ObjectInteract() fallback
+```
+
+### Multiple quest turn-ins
+
+The quest-event layer now collects currently actionable pickup/turn-in quest IDs from the routed FTA state instead of only looking at the root active segment. This is intended to support clusters where several completed quests are available at the same time.
+
+These newest v0.7.6 changes are experimental until they receive more live testing.
+
+## Architecture
+
+```text
+Follow The Arrow
+      |
+      | route / step / SEQUENCE_CHAIN / quest objective state
+      v
+FTA WGG Bridge v0.4.2
+      |
+      v
+Route-task planner
+      |
+      +-- exact routed quest/objective
+      +-- live objective progress
+      +-- FTA IsSegmentSatisfied()
+      |
+      v
+Hybrid navigation
+      |
+      +-- ground: FindPath + MoveAlongPath
+      +-- flight: nav-generated nodes + custom flight controller
+      +-- direct fallback
+      +-- obstacle recovery / landing
+      |
+      v
+Objective dispatcher
+      |
+      +-- PICKUP / TURNIN -> quest gossip/event controller
+      +-- KILL -> strict mob selection -> external combat rotation
+      +-- INTERACT -> precise route-node scan -> object interaction
+      +-- EXTRA_ACTION -> target + extra action button
+      |
+      v
+FTA progress advances -> next routed task
+```
+
+See `docs/ARCHITECTURE.md` for more detail.
+
+## Navigation Server
+
+The current hybrid build expects a WardenGG Navigation Server when MMAP/VMAP navigation is being used.
+
+Default script address:
+
+```text
+127.0.0.1:47110
+```
+
+Example navigation-server data layout used during development:
+
+```text
+C:\WGG\NavData\mmaps\
+C:\WGG\NavData\vmaps\
+```
+
+The server configuration, not the Lua controller, points to the MMAP/VMAP directories.
+
+## Follow The Arrow bridge installation
 
 This repository intentionally does **not** redistribute the full Follow The Arrow addon.
 
@@ -118,15 +156,13 @@ to:
 World of Warcraft/_retail_/Interface/AddOns/FollowTheArrow/Core/WGGBridge.lua
 ```
 
-Then add:
+Then make sure this line exists in `FollowTheArrow.toc` after the appropriate core files:
 
 ```text
 Core\WGGBridge.lua
 ```
 
-to `FollowTheArrow.toc` after `Core\GuideArrow.lua`.
-
-Confirm the bridge with:
+Bridge diagnostic:
 
 ```text
 /ftawgg
@@ -134,135 +170,70 @@ Confirm the bridge with:
 
 ## WardenGG installation
 
-Copy:
+The current complete controller is included in the latest ZIP package:
 
 ```text
-warden/_FTA_DirectMove_v0.4.lua
+latest/FTA_HybridNav_v0.7.6_ElevatedTurninFix.zip
 ```
 
-into the WardenGG script directory being loaded by the user's WGG setup.
-
-Disable older movement prototypes while testing v0.4.
-
-In game, use the clickable panel or:
+Extract:
 
 ```text
-/ftadirect4
+WardenGG/_FTA_HybridNav_v0.7.6_ElevatedTurninFix.lua
 ```
 
-## Current architecture
+into the WardenGG script directory used by your setup.
+
+Do not leave several old `_FTA_DirectMove*` or `_FTA_HybridNav*` controllers loading at the same time. They are independent scripts and can fight over movement.
+
+Useful commands:
 
 ```text
-Follow The Arrow
-      |
-      | active route step + target
-      v
-FTA WGG Bridge
-      |
-      v
-WardenGG Travel Controller
-      |
-      +-- direct ground movement
-      +-- mount / takeoff
-      +-- flight steering
-      +-- obstacle recovery
-      +-- Surge Forward
-      +-- descent / landing
-      |
-      v
-Near FTA destination
-      |
-      v
-Live WardenGG Object Manager
-      |
-      +-- ObjectName
-      +-- ObjectID
-      +-- ObjectGUID
-      +-- ObjectPos
-      |
-      v
-Approach candidate
-      |
-      v
-WGG.ObjectInteract()
-      |
-      v
-Quest dialog opens
-      |
-      v
-[ NEXT: accept / complete / reward handling ]
+/ftahybrid       toggle the current hybrid controller
+/ftastate        dump current FTA/route/objective state
+/ftacandidates   inspect interaction candidates
+/ftawgg          dump FTA bridge state
 ```
 
-## Navigation-server work
+## Combat
 
-A WardenGG Navigation Server integration is being investigated separately.
+The objective controller is responsible for finding the routed hostile, targeting it, approaching it and deciding when the objective is complete.
 
-Current plan:
+It is **not** intended to be a universal class/spec rotation. Actual ability casting is expected to come from a separate compatible Warden rotation.
 
-- use MMAP/VMAP-backed navigation when available
-- use server-generated ground paths for obstacle-aware travel
-- periodically generate/update flying path nodes
-- retain the already-working direct movement controller as a fallback
-- keep the current live-NPC approach/landing logic near the destination
+## Known limitations
 
-The current v0.4 code does **not** require the navigation server.
+This remains an active prototype. Current limitations include:
 
-## Why keep the direct controller?
+- Some bespoke quest mechanics still require quest-specific handlers.
+- Difficult city, indoor, bush and building geometry can still expose navigation edge cases.
+- Quest-specific NPC/ObjectID mappings are incomplete.
+- Some collect/use/click/follow/escort mechanics are still generic or unimplemented.
+- Reward-choice handling is simplistic in the experimental quest controller.
+- The newest elevated-world-click and multi-turn-in changes in v0.7.6 still need live validation.
+- A full unattended 80–90 run has not yet been completed end-to-end.
 
-The direct controller has already been proven in-game to:
+## Primary route
 
-1. reach an FTA destination,
-2. correct after overshooting,
-3. fly,
-4. descend,
-5. land at the NPC,
-6. identify the live NPC,
-7. interact with the NPC.
-
-Even after MMAP/VMAP navigation is added, this makes a useful fallback and near-target controller.
-
-## Current test target
-
-Primary route:
+Current development target:
 
 ```text
 Midnight Alt 80–90
 ```
 
-The project is intended to automate that route as reliably and quickly as practical.
-
-## Known work remaining
-
-- Explicit quest accept handling.
-- Explicit quest completion / reward selection.
-- Better deterministic questID -> expected NPC/ObjectID mapping.
-- Objective/Kill/Collect/Use quest handlers.
-- Combat integration.
-- Special quest mechanic handlers.
-- MMAP/VMAP navigation-server integration.
-- More robust skyriding boost logic.
-- Recovery around difficult city/indoor geometry.
-- Additional route testing.
-
 ## Third-party projects
 
-This repository contains only the integration/prototype code created for this project. It does not include or claim ownership of:
+This repository contains only integration/prototype work created for this project. It does not include or claim ownership of:
 
 - Follow The Arrow
 - WardenGG
 - TrinityCore
 - Arctium navigation data
 
-Their respective code, data, names, and licenses belong to their owners/authors.
-
-## Sharing and contributions
-
-The code is being developed openly as a hobby project. Anyone interested in testing, discussing, improving, or adapting the ideas is welcome to follow the project and contribute where appropriate.
+Their respective code, data, names and licenses belong to their owners/authors.
 
 ## Status
 
 **Prototype / active development.**
 
-The strongest verified milestone as of v0.4 is:
-
-> FTA route target -> fly -> land in front of NPC -> live object scan -> approach NPC -> open quest dialog.
+The strongest recent milestone is no longer just travel. The current system can read FTA's multi-objective route state, use MMAP/VMAP-backed hybrid movement, land at quest areas, select routed kill objectives and successfully hand matching mobs to a combat rotation. Interaction and turn-in automation are now the main area being hardened.
