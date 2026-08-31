@@ -1,0 +1,16 @@
+Follow The Arrow TOC change
+===========================
+
+Do NOT redistribute the full Follow The Arrow addon from this repository.
+
+Add this line to FollowTheArrow/FollowTheArrow.toc after Core\GuideArrow.lua:
+
+Core\WGGBridge.lua
+
+Then place WGGBridge.lua in:
+
+FollowTheArrow/Core/WGGBridge.lua
+
+Diagnostic command in game:
+
+/ftawgg
