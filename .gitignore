@@ -1,0 +1,7 @@
+*.zip
+*.rar
+*.7z
+*.log
+NavData/
+mmaps/
+vmaps/
