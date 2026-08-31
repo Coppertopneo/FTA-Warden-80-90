@@ -8,7 +8,11 @@ The goal is a fast and reliable **80–90 alt leveling flow** using FTA's optimi
 
 ## Project intent
 
-This repository is being shared with the AutoAzeroth developers for review/collaboration. The author is not trying to sell this project and is happy to provide the work to the AutoAzeroth team at no charge.
+This is a personal hobby project I started because I was bored and wanted to see how far I could push FTA + WardenGG toward reliable alt-leveling automation.
+
+I'm building it primarily for my own use and experimentation, but I'm happy to share the code with anyone who finds it useful, wants to learn from it, test it, improve it, or build on the ideas here. I'm not looking for payment or compensation for the work.
+
+This is still an experimental project under active development, so expect unfinished pieces, occasional questionable behavior, and the usual consequences of teaching a game character to make decisions on its own.
 
 No software license has been selected yet.
 
@@ -248,9 +252,12 @@ This repository contains only the integration/prototype code created for this pr
 - WardenGG
 - TrinityCore
 - Arctium navigation data
-- AutoAzeroth
 
 Their respective code, data, names, and licenses belong to their owners/authors.
+
+## Sharing and contributions
+
+The code is being developed openly as a hobby project. Anyone interested in testing, discussing, improving, or adapting the ideas is welcome to follow the project and contribute where appropriate.
 
 ## Status
 
